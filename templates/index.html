@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #chat-container {
+            width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #recommendation-section {
+            width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        #chat-messages {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        #user-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="loading">
+            <p>Loading model, please wait...</p>
+            <progress id="progress-bar" value="0" max="100"></progress>
+        </div>
+        <div id="chat-section" style="display: none;">
+            <div id="chat-messages">
+                <pre><strong>Shopping Assistant:</strong> How may I assist you today?</pre>
+            </div>
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <div id="recommendation-section">
+        <div id="recommendations"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loading').style.display = 'block';
+            fetch('/load_model', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'Model loaded') {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('chat-section').style.display = 'block';
+                    const recommendationsDiv = document.getElementById('recommendations');
+                    recommendationsDiv.innerHTML = "<strong>Recommended Products:</strong><br>";
+                    data.recommendations.forEach(rec => {
+                        recommendationsDiv.innerHTML += `<a href="${rec.url}" target="_blank">${rec.title}</a><br>`;
+                    });
+                } else {
+                    alert('Model loading failed');
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+        });
+
+        function sendMessage() {
+            var userInput = document.getElementById('user-input').value;
+            if (userInput.trim() !== '') {
+                document.getElementById('chat-messages').innerHTML += '<p><strong>You:</strong> ' + userInput + '</p>';
+                document.getElementById('user-input').value = '';
+                fetch('/chat', {
+                    method: 'POST',
+                    body: new URLSearchParams({ question: userInput }),
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    const formattedData = data.answer.replace(urlRegex, '<a href="$1" target="_blank">Product</a>');
+                    const chatMessages = document.getElementById('chat-messages');
+                    chatMessages.innerHTML += '<p><strong>Shopping Assistant:</strong> ' + formattedData + '</p>';
+                });
+            }
+        }
+
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+
+        document.getElementById('user-input').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
