@@ -1,0 +1,10 @@
+Flask
+langchain
+langchain_chroma
+langchain_community
+python-dotenv
+langchain_core
+llama-cpp-python
+sentence-transformers
+pandas
+scikit-learn
